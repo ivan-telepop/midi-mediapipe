@@ -15,10 +15,12 @@ import multiprocessing as multi_p
 import numpy as np
 
 def calculate_distance(lm1,lm2):
-    return np.linalg.norm(np.array([p1.x, p1.y, p1.z]) - np.array([p2.x, p2.y, p2.z]))
+        # Эта функция должна дать расстояние между лендмарками, на основе растояний расчитать интенсивность динамики
+        return np.linalg.norm(np.array([lm1.x, lm1.y, lm1.z]) - np.array([lm2.x, lm2.y, lm2.z]))
 
 
 port_names = mido.get_output_names()
+# Opened MIDI
 note = 60
 
 
@@ -76,6 +78,7 @@ with mp.solutions.hands.Hands(static_image_mode=False,
                 print("NO HANDS DETECTED")
                 continue
             else:
+                # Debug usage prints 
                 print(" *** DETECTED LEN:", len(result.multi_hand_landmarks))
                 print("DETECTED HANDS:", result.multi_hand_landmarks)
                 print('Handedness:', result.multi_handedness)
@@ -117,6 +120,7 @@ with mp.solutions.hands.Hands(static_image_mode=False,
                              COORD_MARK = str(dot_value).lstrip('-0.') #f"X: {int(formated_X[:3])} Y: {int(formated_Y[:3])}"
                              # Sending to another process
                              try:
+                                # Still need to do properly ...
                                 # mido_process = multi_p.Process(target=midi_message_handler,args=(port_names[0],int(COORD_MARK[1:3])))
                                 # mido_process.start()
                                 # mido_process.join()
