@@ -19,16 +19,6 @@ port_names = mido.get_output_names()
 note = 60
 
 
-# for one in range(50,127):
-#     print(one)
-    
-#     msg = mido.Message('note_on', note=one)
-#     note +=1
-#     port.send(msg)
-#     msg = mido.Message('note_off', note=one)
-#     time.sleep(0.5)
-
-# port.panic()
 
 
 
@@ -64,7 +54,7 @@ def socket_send_data(data_object):
 config = dotenv_values(".env")
 
 # Getting the webcam
-web_cam = cv2.VideoCapture(0) # or 1 durring second camera connected
+web_cam = cv2.VideoCapture(0) # or 1 or 2 or 3
 
 
 
@@ -102,19 +92,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_connection:
                         cv2.circle(image, (c_x, c_y), 5, (240, 160, 80))
                         pointers = [4, 8, 12, 16, 20, 0]
                         base_knucles = [1,5,9,13,17]
-                        # if id in pointers:
-                        #     """ Importing here two instance of players"""
-                        #     cv2.circle(image, (c_x, c_y), 18, (60, 107, 225), cv2.FILLED)
-                        #     a, b = c_x / 4, c_y / 2
-                        #     print(f"ID={id}    LM={lm}   A={a} B={b}")
-                        #     # cv2.rectangle(image, (c_x, c_y), (40, 40), (82, 28, 210), thickness=2)
-                        #     X_H, Y_W = abs(h - c_x), abs(w - c_y)
-                        #     dict_data = {'id_port': id,'c_x': c_x,'c_y': c_y,'height': X_H,'width': Y_W}
-                        #     # check size
-                        #     string_data = str(dict_data) + "\n"
-                        #     bytes_data = string_data.encode('utf-8')
-                        #     print(sys.getsizeof(bytes_data) , " = Bytes")
-                        #     # bytes_data = [id,c_x,c_y,X_H,Y_W]
                         if id in pointers or id in base_knucles:
                              print("LANDMARK_POSITION IS : X",int(lm.x) ,"Y : ",int(lm.y))
                              print("ID OF LANDMARK IS ",id)
@@ -123,11 +100,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_connection:
                              font_scale = 0.5
                              _color = (0, 189, 69) if id in pointers else (255,51,51) # Green or red color in BGR
                              thickness = 2
-                             # formating string as 3 digits long and cutting off zeros and dots
 
-                    # \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \          
-                             # Just created some digit mark for understanding how to handle coords and comunicate with the MIDI
-                             # Intermediate work but it will help to do later more then i did
                              formated_X = str(lm.x).lstrip('-0.')
                              formated_Y = str(lm.y).lstrip('-0.')
                              dot_value = lm.x - lm.y
@@ -138,18 +111,14 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_connection:
                              COORD_MARK = str(dot_value).lstrip('-0.') #f"X: {int(formated_X[:3])} Y: {int(formated_Y[:3])}"
                              # Sending to another process
                              try:
-                                # mido_process = multi_p.Process(target=midi_message_handler,args=(port_names[0],int(COORD_MARK[1:3])))
-                                # mido_process.start()
-                                # mido_process.join()
                                 midi_message_handler(port_name=port_names[0],msg_data=int(COORD_MARK[1:3]))
                              except BaseException as e:
                                  print(f"EXCEPTION IS: {e}", f"Current data is:{str(COORD_MARK[1:3])}")
-                             #midi_message_handler(port_name=port_names[0],msg_data=int(COORD_MARK))
+
                                  
                              if mark_coords:
                                 cv2.putText(image,COORD_MARK[1:3],mark_coords, font, font_scale, _color, thickness)
 
-                            #socket_connection.sendall(bytes_data)
                     mpDraw.draw_landmarks(image, one, mp.solutions.hands.HAND_CONNECTIONS)
             cv2.imshow('Camera Capturing', image)
             cv2.waitKey(1)
@@ -157,20 +126,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_connection:
                 break
 
 
-
-
-
-# # Define the text and drawing parameters
-# text = "Index Tip"
-# font = cv2.FONT_HERSHEY_SIMPLEX
-# font_scale = 0.5
-# color = (255, 0, 0) # Blue color in BGR
-# thickness = 2
-
-# # Draw the text near the calculated coordinates (cx, cy)
-# # You may want to offset the text slightly so it doesn't overlap the landmark
-# text_coords = (cx + 10, cy)
-# cv2.putText(image, text, text_coords, font, font_scale, color, thickness)
 
 
 

@@ -10,7 +10,7 @@ from dotenv import dotenv_values
 import socket
 import mido
 import multiprocessing as multi_p
-# S O C K E T   C L I E N T
+
 
 import numpy as np
 
@@ -49,8 +49,8 @@ def midi_message_handler(port_name: str, msg_data: int):
 
 config = dotenv_values(".env")
 
-# Getting the webcam
-web_cam = cv2.VideoCapture(0) # or 1 durring second camera connected
+# Connecting the webcam
+web_cam = cv2.VideoCapture(0) # or 1 if it exist
 
 
 
