@@ -16,6 +16,7 @@ import numpy as np
 
 def calculate_distance(lm1,lm2):
         # Эта функция должна дать расстояние между лендмарками, на основе растояний расчитать интенсивность динамики
+        # temp solution
         return np.linalg.norm(np.array([lm1.x, lm1.y, lm1.z]) - np.array([lm2.x, lm2.y, lm2.z]))
 
 
@@ -55,15 +56,12 @@ web_cam = cv2.VideoCapture(0) # or 1 durring second camera connected
 
 #hands
 
-hands = mp.solutions.hands.Hands(static_image_mode=False,
-                                 max_num_hands=6,
-                                 min_tracking_confidence=0.1,
-                                 min_detection_confidence=0.5)
+mp_hands = mp.solutions.hands
 
 mpDraw = mp.solutions.drawing_utils
 
 
-with mp.solutions.hands.Hands(static_image_mode=False,
+with mp_hands.Hands(static_image_mode=False,
                                  max_num_hands=6,
                                  min_tracking_confidence=0.1,
                                  min_detection_confidence=0.5) as hands:
@@ -79,56 +77,50 @@ with mp.solutions.hands.Hands(static_image_mode=False,
                 continue
             else:
                 # Debug usage prints 
-                print(" *** DETECTED LEN:", len(result.multi_hand_landmarks))
-                print("DETECTED HANDS:", result.multi_hand_landmarks)
+                print("DETECTED LANDMARKS IS:", type(result.multi_hand_landmarks[0]))
                 print('Handedness:', result.multi_handedness)
-                # Handedness: [classification {
-                #   index: 1
-                #   score: 0.901068747
-                #   label: "Right"
-                # }
-                
+                # Finding needed lm's
+                pointers = [4, 8, 12, 16, 20]
+                base_knucles = [1,5,9,13,17]
+                landmarks_list = [one.landmark for one in result.multi_hand_landmarks]
+                for lm_one in pointers:
+                    # evaluating distance on pointers 
+                    _ind = pointers.index(lm_one) # Retr from pointers index for knowing index for retrieving base_knukles
+                    bs_2 = base_knucles[_ind]
+                    lm1 = landmarks_list[0][lm_one]
+                    lm2 = landmarks_list[0][bs_2]
+                    signal_value = calculate_distance(lm1=lm1,lm2=lm2) * 100.5
+                    # Striped signal value 
+                    signal_strip = str(signal_value).lstrip('-0.')
+                    print("SIGNAL VALUE :",int(signal_value)) #signal_strip[1:3])
                 for one in result.multi_hand_landmarks:
-                    print(f"TYPE AND LENGHT OF RESULT: {len(result.multi_hand_landmarks)}")
-                    
                     for id, lm in enumerate(one.landmark):
-                        print("ID=  ", id)
-                        print("Landmark=   ", lm)
                         image_height, image_width, _ = image.shape
                         c_x, c_y = int(lm.x * image_width), int(lm.y * image_height)
                         cv2.circle(image, (c_x, c_y), 5, (240, 160, 80))
-                        pointers = [4, 8, 12, 16, 20]
-                        base_knucles = [1,5,9,13,17]
-                        #distances_between_knuckles = [calculate_distance(pointers[ind],base_knucles[ind]) for ind in range(len(pointers))]
+                        print(
+                            f'Index finger tip coordinates: (',
+                            f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
+                            f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
+                        )
                         if id in pointers or id in base_knucles:
-                             print("LANDMARK_POSITION IS : X",int(lm.x) ,"Y : ",int(lm.y))
-                             print("ID OF LANDMARK IS ",id)
-                             # FONT & DRAW TEXT PARAMS
                              font = cv2.FONT_HERSHEY_SIMPLEX
                              font_scale = 0.5
                              _color = (0, 189, 69) if id in pointers else (255,51,51) # Green or red color in BGR
                              thickness = 2
                     # \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \          
-                             # Just created some digit mark for understanding how to handle coords and comunicate with the MIDI
-                             # Intermediate work but it will help to do later more then i did
                              formated_X = str(lm.x).lstrip('-0.')
                              formated_Y = str(lm.y).lstrip('-0.')
                              dot_value = lm.x - lm.y
                              formated_Z = str(lm.z).lstrip('-0.')
-                             #mark_coords = (int(formated_X[:3]), int(formated_Y[:3]))
-                             mark_coords = (c_x,c_y) if lm else (0,0)
-                             COORD_MARK = str(dot_value).lstrip('-0.') #f"X: {int(formated_X[:3])} Y: {int(formated_Y[:3])}"
-                             # Sending to another process
+                             mark_coords = (c_x,c_y) if lm else (0,0) # Coordinates 
+                             COORD_MARK = int(signal_value)
                              try:
-                                # Still need to do properly ...
-                                # mido_process = multi_p.Process(target=midi_message_handler,args=(port_names[0],int(COORD_MARK[1:3])))
-                                # mido_process.start()
-                                # mido_process.join()
-                                midi_message_handler(port_name=port_names[0],msg_data=int(COORD_MARK[1:3]))
+                                midi_message_handler(port_name=port_names[0],msg_data=int(signal_value))#msg_data=COORD_MARK)
                              except BaseException as e:
-                                 print(f"EXCEPTION IS: {e}", f"Current data is:{str(COORD_MARK[1:3])}")
+                                 print(f"EXCEPTION: {e}")
                              if mark_coords:
-                                cv2.putText(image,COORD_MARK[1:3],mark_coords, font, font_scale, _color, thickness)
+                                cv2.putText(image,str(COORD_MARK),mark_coords, font, font_scale, _color, thickness)
                     mpDraw.draw_landmarks(image, one, mp.solutions.hands.HAND_CONNECTIONS)
             cv2.imshow('Camera Capturing', image)
             cv2.waitKey(1)
