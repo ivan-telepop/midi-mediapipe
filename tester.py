@@ -24,11 +24,12 @@ port_names = mido.get_output_names()
 # Opened MIDI
 note = 60
 
+# Note velocity calculator
+def velocity_calculator(val):
+    return int(val / 4)
 
 
-
-
-def midi_message_handler(port_name: str, msg_data: int):
+def midi_message_handler(port_name: str, msg_data: int, velocity: int):
     """MIDI Message handler - temp solution
 
     Args:
@@ -36,14 +37,35 @@ def midi_message_handler(port_name: str, msg_data: int):
         msg_data (int): note data sent to port
     """
     with  mido.open_output(port_name) as port:
-        init_msg = mido.Message('note_on', note=msg_data)
+        init_msg = mido.Message('note_on', velocity=velocity, note=msg_data)
         port.send(init_msg)
-        close_msg = mido.Message('note_off', note=msg_data)
+        close_msg = mido.Message('note_off', velocity=velocity, note=msg_data)
         port.send(close_msg)
 
 
+# Named Landmarks
 
-
+# 0 - WRIST
+# 1 - THUMB_CMC
+# 2 - THUMB_MCP
+# 3 - THUMB_IP
+# 4 - THUMB_TIP
+# 5 - INDEX_FINGER_MCP
+# 6 - INDEX_FINGER_PIP
+# 7 - INDEX_FINGER_DIP
+# 8 - INDEX_FINGER_TIP
+# 9 - MIDDLE_FINGER_MCP
+# 10 - MIDDLE_FINGER_PIP
+# 11 - MIDDLE_FINGER_DIP
+# 12 - MIDDLE_FINGER_TIP
+# 13 - RING_FINGER_MCP
+# 14 - RING_FINGER_PIP
+# 15 - RING_FINGER_DIP
+# 16 - RING_FINGER_TIP
+# 17 - PINKY_MCP
+# 18 - PINKY_PIP
+# 19 - PINKY_DIP
+# 20 - PINKY_TIP
 
 
 
@@ -98,11 +120,16 @@ with mp_hands.Hands(static_image_mode=False,
                         image_height, image_width, _ = image.shape
                         c_x, c_y = int(lm.x * image_width), int(lm.y * image_height)
                         cv2.circle(image, (c_x, c_y), 5, (240, 160, 80))
-                        print(
-                            f'Index finger tip coordinates: (',
-                            f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
-                            f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
-                        )
+                        # print(
+                        #     f'Index finger tip coordinates: (',
+                        #     f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
+                        #     f'{one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
+                        # )
+
+                        # The grid of keyboard with 60 notes # - This param could be set by user
+                        KEYBOARD_GRID_X = image_width / 60 
+                        KEYBOARD_GRID_Y = image_height / 60 # TEMP SOLUTIION
+
                         if id in pointers or id in base_knucles:
                              font = cv2.FONT_HERSHEY_SIMPLEX
                              font_scale = 0.5
@@ -114,14 +141,37 @@ with mp_hands.Hands(static_image_mode=False,
                              dot_value = lm.x - lm.y
                              formated_Z = str(lm.z).lstrip('-0.')
                              mark_coords = (c_x,c_y) if lm else (0,0) # Coordinates 
-                             COORD_MARK = int(signal_value)
                              try:
-                                midi_message_handler(port_name=port_names[0],msg_data=int(signal_value))#msg_data=COORD_MARK)
+                                midi_message_handler(port_name=port_names[0],msg_data=int(signal_value),velocity=120)#msg_data=COORD_MARK)
                              except BaseException as e:
                                  print(f"EXCEPTION: {e}")
                              if mark_coords:
-                                cv2.putText(image,str(COORD_MARK),mark_coords, font, font_scale, _color, thickness)
+                                cv2.putText(image,str(int(signal_value)),mark_coords, font, font_scale, _color, thickness)
+                                # image: Image on which the line will be drawn.
+                                # start_point: Starting coordinate (x, y).
+                                # end_point: Ending coordinate (x, y).
+                                # color: Line color in BGR format (e.g., (0, 255, 0) for green).
+                                # thickness: Line thickness in pixels
+                                for line_x in range(0,image_width,int(KEYBOARD_GRID_X)):
+                                    cv2.line(image, (line_x,0), (line_x, int(image_height)), (12, 238, 238), 1)
+                                    #cv2.line(image, (0,line_x), (0, int(image_width)), (12, 238, 238), 1)
+                                    
+                                    # for line_y in range(0,image_height,int(KEYBOARD_GRID_Y)):
+                                    #     cv2.line(image, (line_x, line_y), (line_x, line_y), (255, 0, 0), 2)
+                    # PRINT DISTANCE 
+                    WHRIST_X = one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+                    WHRIST_Y = one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+                    # Which note ?
+                    INDEX_FINGER_TIP_X = one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
+                    INDEX_FINGER_TIP_Y = one.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
+                    
+                    # print(f"WHRIST X: {WHRIST_X}    WHRIST Y: {WHRIST_Y}")
+                    print(f"INDEX X: {INDEX_FINGER_TIP_X}    INDEX Y: {INDEX_FINGER_TIP_Y}")
+             
+
                     mpDraw.draw_landmarks(image, one, mp.solutions.hands.HAND_CONNECTIONS)
+
+
             cv2.imshow('Camera Capturing', image)
             cv2.waitKey(1)
             if cv2.waitKey(1) == ord('q'):
